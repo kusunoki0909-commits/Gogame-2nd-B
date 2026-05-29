@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GO GAME - チームD</title>
+    <style>
+        :root {
+            --main-red: #ff003c;
+            --main-blue: #00f2ff;
+            --bg-black: #050505;
+            --success-green: #00ff41;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .terminal {
+            width: 480px;
+            padding: 40px;
+            border: 1px solid #333;
+            background: rgba(0, 0, 0, 0.95);
+            box-shadow: 0 0 50px rgba(255, 0, 60, 0.1);
+            text-align: center;
+            position: relative;
+        }
+
+        .score-display {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            font-size: 1.2rem;
+            color: var(--main-blue);
+            text-shadow: 0 0 10px var(--main-blue);
+        }
+
+        .team-badge {
+            position: absolute;
+            top: -50px;
+            left: 0;
+            font-size: 1.2rem;
+            color: var(--main-red);
+            text-shadow: 0 0 10px var(--main-red);
+            letter-spacing: 3px;
+        }
+
+        h2 {
+            letter-spacing: 8px;
+            color: #eee;
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: 90%;
+            background: transparent;
+            border: 1px solid #444;
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+            outline: none;
+            padding: 12px;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--main-blue);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--main-blue);
+            color: var(--main-blue);
+            padding: 10px 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            background: var(--main-blue);
+            color: black;
+            box-shadow: 0 0 15px var(--main-blue);
+        }
+
+        .btn-reset {
+            border-color: #666;
+            color: #666;
+            padding: 6px 20px;
+            font-size: 0.75rem;
+            margin-top: 30px;
+        }
+
+        .btn-reset:hover {
+            background: #666;
+            color: black;
+            box-shadow: 0 0 10px #666;
+        }
+
+        #log {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            min-height: 1.5rem;
+            font-weight: bold;
+        }
+
+        .progress {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: #555;
+        }
+
+        .sync-status {
+            margin-top: 8px;
+            font-size: 0.65rem;
+            color: #333;
+        }
+
+        .flash-red  { animation: flash-red  0.4s ease-out; }
+        .flash-green { animation: flash-green 0.4s ease-out; }
+
+        @keyframes flash-red   { 0% { background: #330000; } 100% { background: var(--bg-black); } }
+        @keyframes flash-green { 0% { background: #002200; } 100% { background: var(--bg-black); } }
+
+        /* 2段階確認ダイアログ */
+        .overlay { display: none; position: fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.85); justify-content:center; align-items:center; z-index:100; }
+        .overlay.active { display: flex; }
+        .dialog { border:1px solid var(--main-red); background:#111; padding:30px 40px; text-align:center; }
+        .dialog p { margin-bottom:20px; font-size:1rem; line-height:1.6; }
+        .dialog .btn-group { display:flex; gap:15px; justify-content:center; }
+        .dialog .btn-yes { border:1px solid var(--main-red); color:var(--main-red); padding:8px 30px; background:transparent; cursor:pointer; font-weight:bold; font-family:'Courier New',monospace; font-size:0.9rem; }
+        .dialog .btn-yes:hover { background:var(--main-red); color:black; }
+        .dialog .btn-no  { border:1px solid #666; color:#ccc; padding:8px 30px; background:transparent; cursor:pointer; font-weight:bold; font-family:'Courier New',monospace; font-size:0.9rem; }
+        .dialog .btn-no:hover  { background:#666; color:black; }
+
+        /* おめでとう演出 */
+        .congrats-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; z-index:200; flex-direction:column; }
+        .congrats-overlay.active { display:flex; }
+        .congrats-text  { font-size:2rem; color:var(--success-green); text-shadow:0 0 30px var(--success-green); letter-spacing:6px; animation:glow-pulse 1.5s ease-in-out infinite; margin-bottom:20px; }
+        .congrats-score { font-size:1.3rem; color:var(--main-blue); text-shadow:0 0 15px var(--main-blue); }
+        @keyframes glow-pulse { 0%,100%{opacity:1;text-shadow:0 0 30px var(--success-green);}50%{opacity:0.8;text-shadow:0 0 60px var(--success-green),0 0 100px var(--success-green);} }
+        .congrats-close { margin-top:30px; border:1px solid var(--success-green); color:var(--success-green); background:transparent; padding:8px 30px; cursor:pointer; font-weight:bold; font-family:'Courier New',monospace; font-size:0.9rem; }
+        .congrats-close:hover { background:var(--success-green); color:black; }
+    </style>
+</head>
+<body id="body">
+    <div class="terminal">
+        <div class="team-badge">TEAM <span id="teamLabel"></span></div>
+        <div class="score-display">SCORE: <span id="points">0</span> pt</div>
+        <h2>GO GAME</h2>
+        <hr>
+        <input type="text" id="inputBox" placeholder="ひらがなで入力" autocomplete="off">
+        <br>
+        <button class="btn" onclick="processJudgement()">送信</button>
+        <div id="log"></div>
+        <div class="progress" id="progress"></div>
+        <div class="sync-status" id="syncStatus"></div>
+        <button class="btn btn-reset" onclick="startReset()">RESET</button>
+    </div>
+
+    <!-- リセット確認 1段階目 -->
+    <div class="overlay" id="resetDialog1">
+        <div class="dialog">
+            <p>リセットしますか？</p>
+            <div class="btn-group">
+                <button class="btn-yes" onclick="confirmReset1()">はい</button>
+                <button class="btn-no"  onclick="cancelReset()">いいえ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- リセット確認 2段階目 -->
+    <div class="overlay" id="resetDialog2">
+        <div class="dialog">
+            <p>全ての回答がリセットされます。<br>本当によろしいですか？</p>
+            <div class="btn-group">
+                <button class="btn-yes" onclick="executeReset()">はい</button>
+                <button class="btn-no"  onclick="cancelReset()">いいえ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- おめでとう演出 -->
+    <div class="congrats-overlay" id="congratsOverlay">
+        <div class="congrats-text">COMPLETE</div>
+        <div class="congrats-score" id="congratsScore"></div>
+        <button class="congrats-close" onclick="closeCongrats()">OK</button>
+    </div>
+
+    <script>
+        // =====================================================
+        // ★★★ 設定エリア ★★★
+        // =====================================================
+
+        // GASデプロイ後のURLをここに貼り付ける
+        var GAS_URL = "https://script.google.com/macros/s/AKfycbzmrpbIq7Lcm4j35Qa-9uFau0ScvsluVABWRpAqDFgGMnSCPI5O0yCEDYSqnsln_-q3/exec";
+
+        // このタブレットのチームID（A〜Fのいずれか）
+        // チームごとに別ファイルを作る場合はここだけ変更する
+        var TEAM_ID = "D";
+
+        // =====================================================
+        // 問題データ
+        // =====================================================
+        var QUESTIONS = [
+            { answer: "こま",           points: 2 },
+            { answer: "いくらどん",     points: 2 },
+            { answer: "ぎゅうどん",     points: 2 },
+            { answer: "たかな",         points: 2 },
+            { answer: "まんじゅう",     points: 2 },
+            { answer: "さら",           points: 2 },
+            { answer: "たんち",         points: 2 },
+            { answer: "りんごあめ",     points: 2 },
+            { answer: "うつわ",         points: 3 },
+            { answer: "しちゅー",       points: 2 },
+            { answer: "すぱいす",       points: 2 },
+            { answer: "はくじゃく",     points: 2 },
+            { answer: "さみだれ",       points: 2 },
+            { answer: "おしり",         points: 2 },
+            { answer: "なんもん",       points: 2 },
+            { answer: "むいしき",       points: 2 },
+            { answer: "といれ",         points: 2 },
+            { answer: "しろくじちゅう", points: 2 },
+            { answer: "さんご",         points: 2 },
+            { answer: "ふくろう",       points: 2 },
+            { answer: "がか",           points: 2 },
+            { answer: "あたり",         points: 2 },
+            { answer: "えーす",         points: 2 },
+            { answer: "くろす",         points: 3 },
+            { answer: "まくあけ",       points: 4 },
+            { answer: "おみやげ",       points: 3 },
+            { answer: "ですげーむ",     points: 3 },
+            { answer: "すぴん",         points: 3 },
+            { answer: "いよかん",       points: 3 },
+            { answer: "らいむ",         points: 3 },
+            { answer: "ぱんだ",         points: 3 },
+            { answer: "そふぁ",         points: 2 },
+            { answer: "いきがい",       points: 3 },
+            { answer: "いね",           points: 3 },
+            { answer: "りか",           points: 3 },
+            { answer: "らふらんす",     points: 3 },
+            { answer: "はんだくてん",   points: 3 },
+            { answer: "すいか",         points: 2 },
+            { answer: "ろうごく",       points: 3 },
+            { answer: "しお",           points: 3 },
+            { answer: "らっきー",       points: 3 }
+        ];
+
+        // =====================================================
+        // 初期化
+        // =====================================================
+        var ALL_ANSWERS = [];
+        for (var i = 0; i < QUESTIONS.length; i++) {
+            var q = QUESTIONS[i];
+            var answers = q.answer.split(/[／\/]/);
+            for (var j = 0; j < answers.length; j++) {
+                var a = answers[j].replace(/^\s+|\s+$/g, '');
+                ALL_ANSWERS.push({ text: a, points: q.points });
+            }
+        }
+
+        var totalAnswerCount = ALL_ANSWERS.length;
+        var currentScore   = 0;
+        var answeredSet    = {};
+        var answeredCount  = 0;
+
+        var pointsEl   = document.getElementById('points');
+        var logEl      = document.getElementById('log');
+        var inputBox   = document.getElementById('inputBox');
+        var bodyEl     = document.getElementById('body');
+        var progressEl = document.getElementById('progress');
+        var syncEl     = document.getElementById('syncStatus');
+
+        document.getElementById('teamLabel').innerText = TEAM_ID;
+        document.title = "GO GAME - チーム" + TEAM_ID;
+        updateProgress();
+
+        inputBox.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') processJudgement();
+        });
+
+        // カタカナ → ひらがな変換
+        function katakanaToHiragana(str) {
+            return str.replace(/[\u30A1-\u30F6]/g, function(ch) {
+                return String.fromCharCode(ch.charCodeAt(0) - 0x60);
+            });
+        }
+        function normalizeInput(str) {
+            var s = str.replace(/^\s+|\s+$/g, '');
+            return katakanaToHiragana(s);
+        }
+
+        // =====================================================
+        // 判定処理
+        // =====================================================
+        function processJudgement() {
+            var raw = inputBox.value;
+            if (!raw.replace(/^\s+|\s+$/g, '')) return;
+
+            var normalized = normalizeInput(raw);
+
+            if (/[a-zA-Z0-9]/.test(normalized)) {
+                showResult("ひらがなで入力してください", "var(--main-red)", "flash-red");
+                inputBox.value = "";
+                return;
+            }
+
+            if (answeredSet[normalized]) {
+                showResult("回答済みです", "var(--main-red)", "flash-red");
+                inputBox.value = "";
+                return;
+            }
+
+            var match = null;
+            for (var i = 0; i < ALL_ANSWERS.length; i++) {
+                if (ALL_ANSWERS[i].text === normalized) { match = ALL_ANSWERS[i]; break; }
+            }
+
+            if (match) {
+                currentScore += match.points;
+                answeredSet[normalized] = true;
+                answeredCount++;
+                pointsEl.innerText = currentScore;
+                showResult("正解！ +" + match.points + "pt", "var(--success-green)", "flash-green");
+                updateProgress();
+                syncScore(); // GASへ送信
+
+                if (answeredCount === totalAnswerCount) {
+                    setTimeout(showCongrats, 800);
+                }
+            } else {
+                showResult("不正解です.", "var(--main-red)", "flash-red");
+            }
+
+            inputBox.value = "";
+        }
+
+        function showResult(message, color, animation) {
+            logEl.innerText = message;
+            logEl.style.color = color;
+            bodyEl.classList.remove('flash-red', 'flash-green');
+            void bodyEl.offsetWidth;
+            bodyEl.classList.add(animation);
+        }
+
+        function updateProgress() {
+            progressEl.innerText = answeredCount + " / " + totalAnswerCount + " 解答済み";
+        }
+
+        // =====================================================
+        // GAS 連携
+        // =====================================================
+        function syncScore() {
+            if (GAS_URL === "★ここにGASのURLを貼り付け★") return; // 未設定時はスキップ
+            syncEl.innerText = "同期中...";
+            fetch(GAS_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({
+                    action: "updateScore",
+                    team: TEAM_ID,
+                    score: currentScore,
+                    answered: answeredCount
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                syncEl.innerText = d.success ? "✓ 同期完了" : "同期エラー";
+            })
+            .catch(function() {
+                syncEl.innerText = "通信エラー（スコアはローカルに保持）";
+            });
+        }
+
+        // =====================================================
+        // リセット（2段階確認）
+        // =====================================================
+        function startReset()    { document.getElementById('resetDialog1').classList.add('active'); }
+        function confirmReset1() {
+            document.getElementById('resetDialog1').classList.remove('active');
+            document.getElementById('resetDialog2').classList.add('active');
+        }
+        function cancelReset() {
+            document.getElementById('resetDialog1').classList.remove('active');
+            document.getElementById('resetDialog2').classList.remove('active');
+        }
+        function executeReset() {
+            document.getElementById('resetDialog2').classList.remove('active');
+            currentScore  = 0;
+            answeredSet   = {};
+            answeredCount = 0;
+            pointsEl.innerText = 0;
+            logEl.innerText = "";
+            syncEl.innerText = "";
+            updateProgress();
+
+            // GASにもリセット送信
+            if (GAS_URL !== "★ここにGASのURLを貼り付け★") {
+                fetch(GAS_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ action: "resetScore", team: TEAM_ID })
+                }).catch(function(){});
+            }
+        }
+
+        // =====================================================
+        // おめでとう演出
+        // =====================================================
+        function showCongrats() {
+            document.getElementById('congratsScore').innerText = "TOTAL SCORE: " + currentScore + " pt";
+            document.getElementById('congratsOverlay').classList.add('active');
+        }
+        function closeCongrats() {
+            document.getElementById('congratsOverlay').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

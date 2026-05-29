@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GO GAME - 運営管理画面</title>
+    <style>
+        :root {
+            --main-red: #ff003c;
+            --main-blue: #00f2ff;
+            --bg-black: #050505;
+            --success-green: #00ff41;
+            --gold: #ffd700;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            letter-spacing: 10px;
+            color: #eee;
+            text-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+
+        header .subtitle {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #555;
+            letter-spacing: 3px;
+        }
+
+        /* ステータスバー */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            padding: 10px 20px;
+            border: 1px solid #1a1a1a;
+            font-size: 0.75rem;
+        }
+
+        #statusText { color: #555; }
+        #statusText.ok  { color: var(--success-green); }
+        #statusText.err { color: var(--main-red); }
+
+        .btn-refresh {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 5px 16px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            transition: 0.2s;
+        }
+        .btn-refresh:hover { border-color: var(--main-blue); color: var(--main-blue); }
+
+        /* スコアボード */
+        .scoreboard {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .team-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 80px;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 24px;
+            border: 1px solid #1a1a1a;
+            background: rgba(255,255,255,0.02);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .team-row::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: var(--main-blue);
+            opacity: 0.5;
+        }
+
+        .team-row.rank-1::before { background: var(--gold); opacity: 1; }
+        .team-row.rank-2::before { background: #c0c0c0; opacity: 1; }
+        .team-row.rank-3::before { background: #cd7f32; opacity: 1; }
+
+        .rank-badge {
+            font-size: 1.3rem;
+            color: #333;
+            text-align: center;
+            font-weight: bold;
+        }
+        .team-row.rank-1 .rank-badge { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+        .team-row.rank-2 .rank-badge { color: #c0c0c0; }
+        .team-row.rank-3 .rank-badge { color: #cd7f32; }
+
+        .team-name {
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+            color: #ccc;
+        }
+
+        .score-bar-wrap {
+            width: 100%;
+        }
+        .score-bar-bg {
+            background: #111;
+            height: 6px;
+            width: 100%;
+            margin-top: 6px;
+        }
+        .score-bar-fill {
+            height: 6px;
+            background: var(--main-blue);
+            transition: width 0.6s ease;
+        }
+        .team-row.rank-1 .score-bar-fill { background: var(--gold); }
+
+        .score-num {
+            font-size: 1.6rem;
+            color: var(--main-blue);
+            text-align: right;
+            text-shadow: 0 0 8px var(--main-blue);
+            font-weight: bold;
+        }
+        .team-row.rank-1 .score-num { color: var(--gold); text-shadow: 0 0 12px var(--gold); }
+
+        .answered-count {
+            font-size: 0.7rem;
+            color: #444;
+            text-align: right;
+        }
+
+        /* 最大スコア表示 */
+        .max-score-info {
+            text-align: center;
+            font-size: 0.65rem;
+            color: #333;
+            margin-top: 30px;
+        }
+
+        /* GAS URL 設定エリア */
+        .setup-panel {
+            max-width: 800px;
+            margin: 40px auto 0;
+            padding: 20px;
+            border: 1px dashed #222;
+        }
+        .setup-panel h3 {
+            font-size: 0.8rem;
+            color: #444;
+            margin-bottom: 12px;
+            letter-spacing: 3px;
+        }
+        .setup-panel input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            font-size: 0.8rem;
+            padding: 8px 12px;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+        .setup-panel input:focus { border-color: var(--main-blue); color: white; }
+        .btn-set-url {
+            background: transparent;
+            border: 1px solid #444;
+            color: #666;
+            padding: 6px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+        .btn-set-url:hover { border-color: var(--success-green); color: var(--success-green); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>GO GAME</h1>
+        <div class="subtitle">SCORE MONITOR — STAFF ONLY</div>
+    </header>
+
+    <div class="status-bar">
+        <span id="statusText">初期化中...</span>
+        <button class="btn-refresh" onclick="fetchScores()">▶ 手動更新</button>
+    </div>
+
+    <div class="scoreboard" id="scoreboard">
+        <!-- JSで生成 -->
+    </div>
+
+    <div class="max-score-info" id="maxScoreInfo"></div>
+
+    <div class="setup-panel">
+        <h3>SETTINGS</h3>
+        <input type="text" id="gasUrlInput" placeholder="GAS URL を貼り付け（例: https://script.google.com/macros/s/...）">
+        <button class="btn-set-url" onclick="setGasUrl()">URLを設定して開始</button>
+    </div>
+
+    <script>
+        var TEAMS = ["A", "B", "C", "D", "E", "F"];
+        var MAX_SCORE = 109; // 全問正解時の合計点
+        var REFRESH_INTERVAL = 5000; // 5秒ごと
+
+        var gasUrl = "";
+        var refreshTimer = null;
+
+        var scores = {};
+        TEAMS.forEach(function(t) { scores[t] = { score: 0, answered: 0 }; });
+
+        renderBoard();
+
+        function setGasUrl() {
+            var val = document.getElementById('gasUrlInput').value.trim();
+            if (!val) return;
+            gasUrl = val;
+            document.getElementById('statusText').innerText = "URL設定完了 — 接続中...";
+            fetchScores();
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(fetchScores, REFRESH_INTERVAL);
+        }
+
+        function fetchScores() {
+            if (!gasUrl) {
+                document.getElementById('statusText').innerText = "GAS URLを設定してください";
+                return;
+            }
+            var statusEl = document.getElementById('statusText');
+            fetch(gasUrl + "?action=getScores")
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        TEAMS.forEach(function(t) {
+                            if (data.scores[t]) {
+                                scores[t] = {
+                                    score: data.scores[t].score || 0,
+                                    answered: data.scores[t].answered || 0
+                                };
+                            }
+                        });
+                        renderBoard();
+                        var now = new Date();
+                        statusEl.className = "ok";
+                        statusEl.innerText = "最終更新: " + now.toLocaleTimeString('ja-JP') + " — 自動更新中（" + (REFRESH_INTERVAL/1000) + "秒）";
+                    }
+                })
+                .catch(function() {
+                    statusEl.className = "err";
+                    statusEl.innerText = "取得エラー — 再試行中...";
+                });
+        }
+
+        function renderBoard() {
+            // ランキング順にソート
+            var sorted = TEAMS.slice().sort(function(a, b) {
+                return scores[b].score - scores[a].score;
+            });
+
+            var maxScore = 0;
+            TEAMS.forEach(function(t) { if (scores[t].score > maxScore) maxScore = scores[t].score; });
+            var barMax = Math.max(maxScore, 1);
+
+            var html = "";
+            sorted.forEach(function(team, idx) {
+                var rank = idx + 1;
+                var rankClass = rank <= 3 ? "rank-" + rank : "";
+                var rankLabel = rank === 1 ? "1st" : rank === 2 ? "2nd" : rank === 3 ? "3rd" : rank + "th";
+                var sc = scores[team].score;
+                var ans = scores[team].answered;
+                var barPct = Math.round(sc / barMax * 100);
+
+                html += '<div class="team-row ' + rankClass + '">';
+                html += '  <div class="rank-badge">' + rankLabel + '</div>';
+                html += '  <div class="score-bar-wrap">';
+                html += '    <div class="team-name">TEAM ' + team + '</div>';
+                html += '    <div class="score-bar-bg"><div class="score-bar-fill" style="width:' + barPct + '%"></div></div>';
+                html += '  </div>';
+                html += '  <div>';
+                html += '    <div class="score-num">' + sc + '<span style="font-size:0.7rem;color:#555"> pt</span></div>';
+                html += '    <div class="answered-count">' + ans + ' 問正解</div>';
+                html += '  </div>';
+                html += '</div>';
+            });
+
+            document.getElementById('scoreboard').innerHTML = html;
+            document.getElementById('maxScoreInfo').innerText = "満点: " + MAX_SCORE + " pt（全41問正解時）";
+        }
+    </script>
+</body>
+</html>
