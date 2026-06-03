@@ -136,13 +136,16 @@
             background: transparent;
             border: 1px solid #333;
             color: #666;
-            padding: 8px 20px;
+            padding: 12px 20px;
             cursor: pointer;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
             text-align: left;
             transition: 0.2s;
             width: 100%;
+            line-height: 1.6;
+            white-space: normal;
+            word-break: break-all;
         }
         .hint-btn:hover { border-color: #555; color: #999; }
         .hint-btn.revealed {
@@ -154,12 +157,43 @@
             color: var(--main-blue);
             font-size: 0.7rem;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
         .hint-btn .hint-text { display: none; }
         .hint-btn.revealed .hint-text { display: block; }
         .hint-btn .hint-placeholder { color: #333; }
         .hint-btn.revealed .hint-placeholder { display: none; }
+
+        /* 答え表示ボタン */
+        .btn-show-answer {
+            background: transparent;
+            border: 1px solid #444;
+            color: #555;
+            padding: 8px 30px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            margin-top: 4px;
+            width: 100%;
+            text-align: left;
+        }
+        .btn-show-answer:hover { border-color: var(--main-red); color: var(--main-red); }
+        .btn-show-answer.revealed {
+            border-color: var(--main-red);
+            color: white;
+            background: rgba(255, 0, 60, 0.05);
+        }
+        .btn-show-answer .answer-label-hint {
+            color: var(--main-red);
+            font-size: 0.7rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .btn-show-answer .answer-text-hint { display: none; font-size: 1.1rem; letter-spacing: 2px; }
+        .btn-show-answer.revealed .answer-text-hint { display: block; }
+        .btn-show-answer .answer-placeholder { color: #333; }
+        .btn-show-answer.revealed .answer-placeholder { display: none; }
 
         /* 答えカード */
         .answer-card {
@@ -359,7 +393,7 @@
             if (currentQ === 0) return;
             var q = QUESTIONS[currentQ - 1];
 
-            [{ label: 'HINT 1', text: q.hint1 }, { label: 'HINT 2', text: q.hint2 }].forEach(function(h, idx) {
+            [{ label: 'HINT 1', text: q.hint1 }, { label: 'HINT 2', text: q.hint2 }].forEach(function(h) {
                 if (!h.text) return;
                 var btn = document.createElement('button');
                 btn.className = 'hint-btn';
@@ -370,6 +404,16 @@
                 btn.onclick = function() { btn.classList.add('revealed'); };
                 area.appendChild(btn);
             });
+
+            // 答え表示ボタン
+            var ansBtn = document.createElement('button');
+            ansBtn.className = 'btn-show-answer';
+            ansBtn.innerHTML =
+                '<span class="answer-label-hint">ANSWER</span>' +
+                '<span class="answer-placeholder">▶ タップで答えを表示</span>' +
+                '<span class="answer-text-hint">' + q.answer + '</span>';
+            ansBtn.onclick = function() { ansBtn.classList.add('revealed'); };
+            area.appendChild(ansBtn);
         }
 
         function checkAnswer() {
