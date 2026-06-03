@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GO GAME - 答え合わせ</title>
+    <style>
+        :root {
+            --main-red: #ff003c;
+            --main-blue: #00f2ff;
+            --bg-black: #050505;
+            --success-green: #00ff41;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-black);
+            color: white;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            letter-spacing: 10px;
+            color: #eee;
+        }
+
+        header .subtitle {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #555;
+            letter-spacing: 3px;
+        }
+
+        .score-header {
+            margin-top: 16px;
+            font-size: 1rem;
+            color: var(--main-blue);
+            text-shadow: 0 0 10px var(--main-blue);
+            letter-spacing: 3px;
+        }
+        .score-header span {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        /* 入力エリア */
+        .input-area {
+            max-width: 500px;
+            margin: 0 auto 50px;
+            text-align: center;
+        }
+
+        .q-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .q-selector label {
+            font-size: 0.8rem;
+            color: #666;
+            letter-spacing: 2px;
+        }
+
+        .q-selector select {
+            background: transparent;
+            border: 1px solid #444;
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .q-selector select option { background: #111; }
+
+        input[type="text"] {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #444;
+            color: white;
+            font-size: 1.4rem;
+            text-align: center;
+            outline: none;
+            padding: 12px;
+            margin-bottom: 16px;
+            transition: 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus { border-color: var(--main-blue); }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--main-blue);
+            color: var(--main-blue);
+            padding: 10px 40px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+        .btn:hover { background: var(--main-blue); color: black; box-shadow: 0 0 15px var(--main-blue); }
+
+        #resultMsg {
+            margin-top: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+            min-height: 1.4rem;
+        }
+
+        /* ヒントエリア */
+        .hint-area {
+            max-width: 500px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hint-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            text-align: left;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .hint-btn:hover { border-color: #555; color: #999; }
+        .hint-btn.revealed {
+            border-color: var(--main-blue);
+            color: white;
+            background: rgba(0, 242, 255, 0.05);
+        }
+        .hint-btn .hint-label {
+            color: var(--main-blue);
+            font-size: 0.7rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .hint-btn .hint-text { display: none; }
+        .hint-btn.revealed .hint-text { display: block; }
+        .hint-btn .hint-placeholder { color: #333; }
+        .hint-btn.revealed .hint-placeholder { display: none; }
+
+        /* 答えカード */
+        .answer-card {
+            max-width: 500px;
+            margin: 0 auto;
+            border: 1px solid var(--success-green);
+            background: rgba(0, 255, 65, 0.03);
+            padding: 20px;
+            text-align: center;
+            display: none;
+        }
+        .answer-card.show { display: block; }
+        .answer-card .answer-label {
+            font-size: 0.7rem;
+            color: var(--success-green);
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+        .answer-card .answer-text {
+            font-size: 2rem;
+            color: var(--success-green);
+            text-shadow: 0 0 15px var(--success-green);
+            letter-spacing: 4px;
+        }
+
+        /* 問題一覧 */
+        .list-section {
+            max-width: 500px;
+            margin: 60px auto 0;
+        }
+        .list-section h2 {
+            font-size: 0.75rem;
+            color: #333;
+            letter-spacing: 4px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .q-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 6px;
+        }
+        .q-item {
+            border: 1px solid #1a1a1a;
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #555;
+        }
+        .q-item:hover { border-color: #444; color: #aaa; }
+        .q-item.correct { border-color: var(--success-green); color: var(--success-green); background: rgba(0,255,65,0.05); }
+        .q-item .q-num { font-size: 0.6rem; color: #333; display: block; margin-bottom: 2px; }
+        .q-item.correct .q-num { color: var(--success-green); opacity: 0.6; }
+
+        .score-summary {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #444;
+        }
+        .score-summary span { color: var(--main-blue); }
+
+        .flash-red   { animation: flash-red   0.4s ease-out; }
+        .flash-green { animation: flash-green 0.4s ease-out; }
+        @keyframes flash-red   { 0% { background: #1a0000; } 100% { background: var(--bg-black); } }
+        @keyframes flash-green { 0% { background: #001a00; } 100% { background: var(--bg-black); } }
+    </style>
+</head>
+<body id="bodyEl">
+
+    <header>
+        <h1>GO GAME</h1>
+        <div class="subtitle">ANSWER CHECK</div>
+        <div class="score-header">SCORE <span id="totalScore">0</span> <span style="font-size:0.9rem">/ 100 pt</span></div>
+    </header>
+
+    <!-- 問題番号選択 + 入力 -->
+    <div class="input-area">
+        <div class="q-selector">
+            <label>問題番号</label>
+            <select id="qSelect" onchange="onQuestionChange()">
+                <!-- JSで生成 -->
+            </select>
+        </div>
+        <input type="text" id="inputBox" placeholder="ひらがなで入力" autocomplete="off">
+        <br>
+        <button class="btn" onclick="checkAnswer()">判定</button>
+        <div id="resultMsg"></div>
+    </div>
+
+    <!-- ヒントエリア -->
+    <div class="hint-area" id="hintArea"></div>
+
+    <!-- 正解表示カード -->
+    <div class="answer-card" id="answerCard">
+        <div class="answer-label">ANSWER</div>
+        <div class="answer-text" id="answerText"></div>
+    </div>
+
+    <!-- 問題一覧 -->
+    <div class="list-section">
+        <h2>— QUESTION LIST —</h2>
+        <div class="q-list" id="qList"></div>
+        <div class="score-summary" id="scoreSummary"></div>
+    </div>
+
+    <script>
+        var QUESTIONS = [
+            { no:1,  answer:"こま",           points:2, hint1:"合宿場所の名前を入れましょう",                              hint2:"OKUTAMA+です" },
+            { no:2,  answer:"いくらどん",     points:2, hint1:"3つめの国は「インド」です",                                hint2:"2つ目の国は「イラン」です" },
+            { no:3,  answer:"ぎゅうどん",     points:2, hint1:"色んな丼ものを声に出してみましょう。",                    hint2:"○○うどんとなる丼ものが答えです。" },
+            { no:4,  answer:"たかな",         points:2, hint1:"問題文の色に注目しましょう。",                            hint2:"赤文字は「カタカナ」で書かれています。" },
+            { no:5,  answer:"まんじゅう",     points:2, hint1:"イラストは「せんべい」「おくら」のようです。",            hint2:"00の場合「ひゃく」とよみます。" },
+            { no:6,  answer:"さら",           points:2, hint1:"三角形を7文字で表せないでしょうか？",                    hint2:"丸を英語になおすと「サークル」です。" },
+            { no:7,  answer:"たんち",         points:2, hint1:"⇔は対義語を表している。",                               hint2:"青色に「ちょう（長）」が入る時どうなるかを考えましょう。" },
+            { no:8,  answer:"りんごあめ",     points:2, hint1:"※当日しか解けない問題です。",                           hint2:"紙のうらにヒントがあります。" },
+            { no:9,  answer:"うつわ",         points:3, hint1:"三文字の県庁所在地を考えましょう。",                    hint2:"右側には宇都宮と宮崎が当てはまります。" },
+            { no:10, answer:"しちゅー",       points:2, hint1:"動物が隠れています。",                                   hint2:"鳴き声を考えましょう。" },
+            { no:11, answer:"すぱいす",       points:2, hint1:"酢の味を考えましょう。",                                 hint2:"「すっぱいす」が当てはまります。" },
+            { no:12, answer:"はくじゃく",     points:2, hint1:"オレンジに「力粉」と「火」を入れる時で、？の部分が変わります。", hint2:"「力粉」の場合、？に入るのは「薄」です。" },
+            { no:13, answer:"さみだれ",       points:2, hint1:"一番上は「かみなり」を表しています。",                  hint2:"真ん中は「ひらいしん」を表しています。" },
+            { no:14, answer:"おしり",         points:2, hint1:"イラストは指を表しているようです。",                    hint2:"指の名前を平仮名にしてみましょう。" },
+            { no:15, answer:"なんもん",       points:2, hint1:"●に「な」か「こ」が入る時、対義語になります。",         hint2:"おとなの反対は「こども」です。" },
+            { no:16, answer:"むいしき",       points:2, hint1:"一番上は「ムジ」となっており、左から読むと「無地」、右から読むと「ジム」になります。", hint2:"真ん中は左から読むと「イルカ」。右から読むと「カルイ」となっています。" },
+            { no:17, answer:"といれ",         points:2, hint1:"下線の区切りで読むと、4つの名詞になりそうです。",       hint2:"YEAR、DOWN、DICE、TREEをあてはめましょう。" },
+            { no:18, answer:"しろくじちゅう", points:2, hint1:"一番の上のイラストは「ぼくじゅう」を表しています。",   hint2:"時計の時刻に注目しましょう。" },
+            { no:19, answer:"さんご",         points:2, hint1:"左から数が増えているようです。",                        hint2:"「いち」「に」「さん」「よん」「ご」が当てはまりそうです。" },
+            { no:20, answer:"ふくろう",       points:2, hint1:"動物の名前を○に入れましょう。",                        hint2:"ウルフとクロウを当てはめましょう。" },
+            { no:21, answer:"がか",           points:2, hint1:"色々な「イカリ」を想像しましょう。",                   hint2:"人の時は「怒り」でアンガーになります。" },
+            { no:22, answer:"あたり",         points:2, hint1:"電灯をSに置きます。向きは指定されていません。",         hint2:"光を届けるには最短で届ける方法がよさそうです。" },
+            { no:23, answer:"えーす",         points:2, hint1:"矢印の先の単語を読む規則です。",                        hint2:"黒の矢印を探しましょう。" },
+            { no:24, answer:"くろす",         points:3, hint1:"下に凸のピースは右下の「えようん」の所に当てはまります。", hint2:"1と書かれたピースだけ向きをかえます。" },
+            { no:25, answer:"まくあけ",       points:4, hint1:"白がひとつながりになるので、3と書かれた部屋のマスが確定します。０のマスも確定します。", hint2:"三方向が黒いマスは４つ存在しています。" },
+            { no:26, answer:"おみやげ",       points:3, hint1:"他の数字が同じ部屋に入らないため、右上の５や左下の４から考えましょう。", hint2:"6などの大きな数字から考えましょう。" },
+            { no:27, answer:"ですげーむ",     points:3, hint1:"右上の「と」はどの線もとおりません。",                  hint2:"3は外枠をつたって線でつながります。" },
+            { no:28, answer:"すぴん",         points:3, hint1:"左上から、「ら↦せ↦と↦げ…」とつながります。",          hint2:"「こ」の間には『■,す』があります。■自体にも名前がついています。" },
+            { no:29, answer:"いよかん",       points:3, hint1:"一直線で有ればよいため、斜めなども見落とさないようにしましょう。", hint2:"「よすみよめ」が残るので、盤面の隅を読みましょう。" },
+            { no:30, answer:"らいむ",         points:3, hint1:"国旗はフランスを表しています。",                        hint2:"フランスは「仏」とも表します。" },
+            { no:31, answer:"ぱんだ",         points:3, hint1:"半分の「ど」でハンドを表しています。",                  hint2:"「はんだ」と○を合わせると、動物になりそうです。" },
+            { no:32, answer:"そふぁ",         points:2, hint1:"ドからループするものを考えましょう。",                  hint2:"音階を当てはめましょう。" },
+            { no:33, answer:"いきがい",       points:3, hint1:"それぞれの文章は5文字、7文字、9文字、6文字です。",     hint2:"7文字の内の6文字目を拾うと、「い」となります。" },
+            { no:34, answer:"りか",           points:3, hint1:"英語にすると「KID」「RAT」「DRY」「EAT」「SKY」です。", hint2:"左上には、「KID」が入ります。" },
+            { no:35, answer:"いね",           points:3, hint1:"羊が含まれて12個で一周するものを考えましょう。",       hint2:"十二支を当てはめて考えましょう。" },
+            { no:36, answer:"らふらんす",     points:3, hint1:"国旗はフランスを表しています。",                        hint2:"そのまま読みましょう。" },
+            { no:37, answer:"はんだくてん",   points:3, hint1:"半分の「ど」でハンドを表しています。",                  hint2:"「はんだ」と「句点」をあわせましょう。" },
+            { no:38, answer:"すいか",         points:2, hint1:"ドからループするものを考えましょう。",                  hint2:"曜日を当てはめましょう。" },
+            { no:39, answer:"ろうごく",       points:3, hint1:"分数を声に出してみましょう。",                          hint2:"「ななぶんのろく」はそれ自体が、7文字で有り、その6文字目を拾うと「ろ」になります。" },
+            { no:40, answer:"らっきー",       points:3, hint1:"羊が含まれて12個で一周するものを考えましょう。",       hint2:"十二星座を当てはめて考えましょう。" },
+            { no:41, answer:"しお",           points:3, hint1:"英語にすると「キッド」「ラット」「ドライ」「イート」「スカイ」です。", hint2:"左上には、「キッド」が入ります。" }
+        ];
+
+        // 正解済み管理
+        var correctSet = {};
+        var currentQ = 0; // 0 = 全問モード、1〜41 = 問題番号
+
+        // カタカナ→ひらがな
+        function toHira(str) {
+            return str.replace(/[\u30A1-\u30F6]/g, function(c) {
+                return String.fromCharCode(c.charCodeAt(0) - 0x60);
+            });
+        }
+        function normalize(str) {
+            return toHira(str.replace(/^\s+|\s+$/g, ''));
+        }
+
+        // 初期化
+        (function init() {
+            var sel = document.getElementById('qSelect');
+            var allOpt = document.createElement('option');
+            allOpt.value = 0;
+            allOpt.textContent = '指定なし（全問）';
+            sel.appendChild(allOpt);
+            QUESTIONS.forEach(function(q) {
+                var opt = document.createElement('option');
+                opt.value = q.no;
+                opt.textContent = '問題 ' + q.no;
+                sel.appendChild(opt);
+            });
+
+            renderQList();
+            renderHints();
+        })();
+
+        function onQuestionChange() {
+            currentQ = parseInt(document.getElementById('qSelect').value);
+            document.getElementById('resultMsg').innerText = '';
+            document.getElementById('inputBox').value = '';
+            document.getElementById('answerCard').classList.remove('show');
+            renderHints();
+        }
+
+        function renderHints() {
+            var area = document.getElementById('hintArea');
+            area.innerHTML = '';
+            if (currentQ === 0) return;
+            var q = QUESTIONS[currentQ - 1];
+
+            [{ label: 'HINT 1', text: q.hint1 }, { label: 'HINT 2', text: q.hint2 }].forEach(function(h, idx) {
+                if (!h.text) return;
+                var btn = document.createElement('button');
+                btn.className = 'hint-btn';
+                btn.innerHTML =
+                    '<span class="hint-label">' + h.label + '</span>' +
+                    '<span class="hint-placeholder">▶ タップで表示</span>' +
+                    '<span class="hint-text">' + h.text + '</span>';
+                btn.onclick = function() { btn.classList.add('revealed'); };
+                area.appendChild(btn);
+            });
+        }
+
+        function checkAnswer() {
+            var raw = document.getElementById('inputBox').value;
+            var msgEl = document.getElementById('resultMsg');
+            var bodyEl = document.getElementById('bodyEl');
+            if (!raw.trim()) return;
+
+            var input = normalize(raw);
+
+            if (/[a-zA-Z0-9]/.test(input)) {
+                msgEl.style.color = 'var(--main-red)';
+                msgEl.innerText = 'ひらがなで入力してください';
+                document.getElementById('inputBox').value = '';
+                return;
+            }
+
+            var matched = null;
+            var matchedQ = null;
+
+            if (currentQ === 0) {
+                // 全問モード：全問から探す
+                for (var i = 0; i < QUESTIONS.length; i++) {
+                    if (QUESTIONS[i].answer === input) {
+                        matched = QUESTIONS[i];
+                        matchedQ = QUESTIONS[i];
+                        break;
+                    }
+                }
+            } else {
+                // 特定問題モード
+                var q = QUESTIONS[currentQ - 1];
+                if (q.answer === input) {
+                    matched = q;
+                    matchedQ = q;
+                }
+            }
+
+            bodyEl.classList.remove('flash-red', 'flash-green');
+            void bodyEl.offsetWidth;
+
+            if (matched) {
+                correctSet[matched.answer] = true;
+                msgEl.style.color = 'var(--success-green)';
+                msgEl.innerText = '正解！ 問題' + matched.no + '「' + matched.answer + '」+' + matched.points + 'pt';
+                bodyEl.classList.add('flash-green');
+                updateTotalScore();
+
+                // 答えカード表示
+                document.getElementById('answerText').innerText = matched.answer;
+                document.getElementById('answerCard').classList.add('show');
+                renderQList();
+            } else {
+                msgEl.style.color = 'var(--main-red)';
+                msgEl.innerText = currentQ === 0 ? '不正解です。' : '問題' + currentQ + '：不正解です。';
+                bodyEl.classList.add('flash-red');
+                document.getElementById('answerCard').classList.remove('show');
+            }
+
+            document.getElementById('inputBox').value = '';
+        }
+
+        function renderQList() {
+            var list = document.getElementById('qList');
+            list.innerHTML = '';
+            var correctCount = 0;
+            QUESTIONS.forEach(function(q) {
+                var isCorrect = !!correctSet[q.answer];
+                if (isCorrect) correctCount++;
+                var div = document.createElement('div');
+                div.className = 'q-item' + (isCorrect ? ' correct' : '');
+                div.innerHTML = '<span class="q-num">No.' + q.no + '</span>' + (isCorrect ? q.answer : '?');
+                div.onclick = function() {
+                    document.getElementById('qSelect').value = q.no;
+                    currentQ = q.no;
+                    document.getElementById('resultMsg').innerText = '';
+                    document.getElementById('inputBox').value = '';
+                    document.getElementById('answerCard').classList.remove('show');
+                    renderHints();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                list.appendChild(div);
+            });
+            var summary = document.getElementById('scoreSummary');
+            summary.innerHTML = '正解済み <span>' + correctCount + '</span> / ' + QUESTIONS.length + ' 問';
+        }
+
+        function updateTotalScore() {
+            var total = 0;
+            QUESTIONS.forEach(function(q) {
+                if (correctSet[q.answer]) total += q.points;
+            });
+            document.getElementById('totalScore').innerText = total;
+        }
+
+        document.getElementById('inputBox').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkAnswer();
+        });
+    </script>
+</body>
+</html>
